@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e5b48b46cc68536c0f6497e15a39811e",
+    "content-hash": "1a7c1e61d47d5ffac312d988550af504",
     "packages": [
         {
             "name": "psr/cache",
@@ -2610,6 +2610,49 @@
                 }
             ],
             "time": "2021-12-16T21:58:21+00:00"
+        },
+        {
+            "name": "viewi/viewi",
+            "version": "v0.1.5",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/viewi/viewi.git",
+                "reference": "80e76eb90355f202e959e9532cdc017750357c10"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/viewi/viewi/zipball/80e76eb90355f202e959e9532cdc017750357c10",
+                "reference": "80e76eb90355f202e959e9532cdc017750357c10",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.4 || ^8.0"
+            },
+            "bin": [
+                "bin/viewi"
+            ],
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Viewi\\": "src/Viewi/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Powerful tool for building progressive and completely reactive web applications",
+            "keywords": [
+                "reactive",
+                "template",
+                "ui",
+                "viewi"
+            ],
+            "support": {
+                "issues": "https://github.com/viewi/viewi/issues",
+                "source": "https://github.com/viewi/viewi/tree/v0.1.5"
+            },
+            "time": "2022-01-06T15:45:05+00:00"
         }
     ],
     "packages-dev": [],

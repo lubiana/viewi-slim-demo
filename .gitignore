@@ -8,3 +8,8 @@
 /var/
 /vendor/
 ###< symfony/framework-bundle ###
+composer.phar
+**/build/**/*
+!**/build/.gitkeep
+**/viewi-build/**/*
+src/ViewiApp/publicConfig.php

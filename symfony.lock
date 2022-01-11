@@ -141,5 +141,8 @@
     },
     "symfony/yaml": {
         "version": "v5.4.2"
+    },
+    "viewi/viewi": {
+        "version": "v0.1.5"
     }
 }
