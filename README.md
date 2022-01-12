@@ -108,6 +108,7 @@ class ViewiSymfonyAdapter extends RouteAdapterBase
 
     public function handle($method, $url, $params = null)
     {
+        // !!do not use Kernel dev in production!!
         $kernel = new Kernel('dev', false);
         $request = Request::create($url, $method, $params ?? []);
         $response = $kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
