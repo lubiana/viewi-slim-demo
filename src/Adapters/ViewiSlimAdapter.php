@@ -24,6 +24,7 @@ class ViewiSlimAdapter extends RouteAdapterBase
 
     public function handle($method, $url, $params = null)
     {
+        $method = strtoupper($method);
         $request = (new ServerRequestFactory())->createServerRequest($method, $url, $params ?? []);
         $response = $this->app->handle($request);
         if($response instanceof RawJsonResponse)
