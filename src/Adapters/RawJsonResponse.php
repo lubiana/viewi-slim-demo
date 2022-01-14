@@ -2,27 +2,23 @@
 
 namespace App\Adapters;
 
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Fig\Http\Message\StatusCodeInterface;
+use Psr\Http\Message\StreamInterface;
+use Slim\Psr7\Interfaces\HeadersInterface;
+use Slim\Psr7\Response;
 
-class RawJsonResponse extends JsonResponse
+class RawJsonResponse extends Response
 {
     private $rawData = null;
-    /**
-     * @param mixed $data    The response data
-     * @param int   $status  The response status code
-     * @param array $headers An array of response headers
-     * @param bool  $json    If the data is already a JSON string
-     */
-    public function __construct($data = null, int $status = 200, array $headers = [], bool $json = false)
+
+    public function __construct(int $status = StatusCodeInterface::STATUS_OK, ?HeadersInterface $headers = null, ?StreamInterface $body = null)
     {
-        $this->rawData = $data;
-        parent::__construct($data, $status, $headers, $json);
+        parent::__construct($status, $headers, $body);
     }
 
     public function setData($data = [])
     {
         $this->rawData = $data;
-        parent::setData($data);
     }
 
     public function getRawData()

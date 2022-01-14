@@ -13,3 +13,4 @@ composer.phar
 !**/build/.gitkeep
 **/viewi-build/**/*
 src/ViewiApp/publicConfig.php
+.idea

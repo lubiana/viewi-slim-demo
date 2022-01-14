@@ -125,7 +125,7 @@ class ViewiSymfonyAdapter extends RouteAdapterBase
         /** @var RouteItem $route */
         foreach ($viewiRoutes as $viewiRoute) {
             $route = $routes->add($viewiRoute->component . (++$this->index), $viewiRoute->url)
-                ->controller(ViewiSymfonyComponent::class)
+                ->controller(ViewiSlimComponent::class)
                 ->methods([$viewiRoute->method]);
             $defaults  = ['__viewi_component' => $viewiRoute->component] + ($viewiRoute->defaults ?? []);
             $route->defaults($defaults);
@@ -182,7 +182,7 @@ class RawJsonResponse extends JsonResponse
 
 namespace App;
 
-use App\Adapters\ViewiSymfonyAdapter;
+use App\Adapters\ViewiSlimAdapter;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\HttpKernel\Kernel as BaseKernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
@@ -192,12 +192,12 @@ class Kernel extends BaseKernel
 {
     use MicroKernelTrait;
 
-    private ViewiSymfonyAdapter $viewiAdapter;
+    private ViewiSlimAdapter $viewiAdapter;
 
     public function boot()
     {
         // set up Symfony adapter for Viewi 
-        $this->viewiAdapter = new ViewiSymfonyAdapter();
+        $this->viewiAdapter = new ViewiSlimAdapter();
         Route::setAdapter($this->viewiAdapter);
         include __DIR__ . '/ViewiApp/viewi.php';
         parent::boot();
