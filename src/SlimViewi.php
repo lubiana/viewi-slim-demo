@@ -22,7 +22,6 @@ return function () : App {
         $response->setData($postModel);
         $body->write(json_encode($postModel));
         return $response
-            ->withHeader('Content-Type', 'application/json')
             ->withBody($body);
     });
 

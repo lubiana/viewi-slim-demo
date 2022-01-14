@@ -5,12 +5,9 @@
     "prefer-stable": true,
     "require": {
         "php": ">=7.4",
-        "ext-ctype": "*",
-        "ext-iconv": "*",
         "slim/psr7": "^1.5",
         "slim/slim": "4.*",
         "viewi/viewi": "^0.1.5",
-        "ext-json": "*"
     },
     "autoload": {
         "psr-4": {

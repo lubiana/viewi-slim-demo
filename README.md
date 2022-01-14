@@ -2,17 +2,13 @@
 
 ## Install Symfony (API)
 
-`symfony new my_project_directory`
-
-OR
-
-`composer create-project symfony/skeleton my_project_directory`
+    composer require slim/slim:"4.*"
+    composer require slim/psr7
 
 ## Install Viewi
 
-`composer require viewi/viewi`
-
-`vendor/bin/viewi new -e`
+    composer require viewi/viewi
+    vendor/bin/viewi new -e
 
 ## Change `public/index.php`
 
@@ -21,47 +17,94 @@ Remove Viewi related stuff
 ```php
 <?php
 
-use App\Kernel;
+require_once __DIR__ . '/../vendor/autoload.php';
 
-require_once dirname(__DIR__) . '/vendor/autoload_runtime.php';
+/** @var \Slim\App $app */
+$app = (require __DIR__ . '/../src/SlimViewi.php')();
 
-return function (array $context) {
-    return new Kernel($context['APP_ENV'], (bool) $context['APP_DEBUG']);
+$app->run();
+```
+
+## Configure SlimApp `src/SlimViewi.php`
+
+here we define our mocked api controller and register the slim viewi adapter
+
+```php
+<?php
+use App\Adapters\RawJsonResponse;
+use App\Adapters\ViewiSlimAdapter;
+use Components\Models\PostModel;
+use Psr\Http\Message\RequestInterface as Request;
+use Psr\Http\Message\ResponseInterface as Response;
+use Slim\App;
+use Slim\Factory\AppFactory;
+use Slim\Psr7\Headers;
+use Viewi\Routing\Route;
+
+return function () : App {
+    $app = AppFactory::create();
+
+    $app->get('/api', function (Request $request, Response $response): RawJsonResponse {
+        $body = $response->getBody();
+        $postModel = new PostModel();
+        $postModel->Name = 'Symfony ft. Viewi';
+        $postModel->Version = 1;
+        $headers = new Headers($response->getHeaders());
+        $response = new RawJsonResponse($response->getStatusCode(), $headers, $response->getBody());
+        $response->setData($postModel);
+        $body->write(json_encode($postModel));
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withBody($body);
+    });
+
+    require __DIR__ . '/../src/ViewiApp/viewi.php';
+    $adapter = new ViewiSlimAdapter($app);
+    Route::setAdapter($adapter);
+    $adapter->registerRoutes();
+
+    return $app;
 };
 ```
 
-## Configure Symfony
+## Configure Slim
 
 Create Viewi adapter for Symfony
 
-`src\Adapters\ViewiSymfonyComponent.php`
+`src\Adapters\ViewiSlimComponent.php`
 
 ```php
 <?php
 
 namespace App\Adapters;
 
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Slim\Psr7\Request;
+use Slim\Psr7\Response;
 use Viewi\App;
 use Viewi\WebComponents\Response as ViewiResponse;
 
-class ViewiSymfonyComponent
+class ViewiSlimComponent
 {
-    public function __invoke(Request $request): Response
-    {
-        $params = $request->attributes->all();
-        $component = $params['__viewi_component'];
+    private string $component;
 
-        $response = App::run($component, $params);
-        if (is_string($response)) { // html
-            return new Response(
-                $response
-            );
-        } else if ($response instanceof ViewiResponse) {
+    public function __construct(string $component) {
+        $this->component = $component;
+    }
+    public function __invoke(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $params['__viewi_component'] = $this->component;
+
+        $vResponse = App::run($this->component, $params);
+        if (is_string($vResponse)) { // html
+            $body = $response->getBody();
+            $body->write($vResponse);
+            return  $response
+                ->withBody($body);
+        }
+        if ($vResponse instanceof ViewiResponse) {
             /** @var ViewiResponse $response */
-            if ($response->Stringify) { // ViewiResponse with the object (should never happen, Symfony handles the API)
+            if ($vResponse->Stringify) { // ViewiResponse with the object (should never happen, Symfony handles the API)
                 return new JsonResponse(
                     $response->Content,
                     $response->StatusCode,
@@ -74,9 +117,13 @@ class ViewiSymfonyComponent
                 $response->StatusCode,
                 $response->Headers
             );
-        } else { // json (should never happen, Symfony handles the API)
-            return new JsonResponse($response);
         }
+        // json (should never happen, Symfony handles the API
+        $body = $response->getBody();
+        $body->write($vResponse);
+        return  $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withBody($body);
     }
 }
 ```
@@ -88,18 +135,20 @@ class ViewiSymfonyComponent
 
 namespace App\Adapters;
 
-use App\Kernel;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
+use Slim\App;
+use Slim\Psr7\Factory\ServerRequestFactory;
 use Viewi\Routing\RouteAdapterBase;
-use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Viewi\Routing\Route;
-use Viewi\Routing\RouteItem;
 
-class ViewiSymfonyAdapter extends RouteAdapterBase
+class ViewiSlimAdapter extends RouteAdapterBase
 {
     private int $index = 0; // unique names
+    private App $app;
+
+    public function __construct(App $app)
+    {
+        $this->app = $app;
+    }
 
     public function register($method, $url, $component, $defaults)
     {
@@ -108,10 +157,9 @@ class ViewiSymfonyAdapter extends RouteAdapterBase
 
     public function handle($method, $url, $params = null)
     {
-        // !!do not use Kernel dev in production!!
-        $kernel = new Kernel('dev', false);
-        $request = Request::create($url, $method, $params ?? []);
-        $response = $kernel->handle($request, HttpKernelInterface::SUB_REQUEST);
+        $method = strtoupper($method);
+        $request = (new ServerRequestFactory())->createServerRequest($method, $url, $params ?? []);
+        $response = $this->app->handle($request);
         if($response instanceof RawJsonResponse)
         {
             return $response->getRawData();
@@ -119,16 +167,13 @@ class ViewiSymfonyAdapter extends RouteAdapterBase
         return json_decode($response->getContent());
     }
 
-    public function registerRoutes(RoutingConfigurator $routes)
+    public function registerRoutes()
     {
         $viewiRoutes = Route::getRoutes();
-        /** @var RouteItem $route */
-        foreach ($viewiRoutes as $viewiRoute) {
-            $route = $routes->add($viewiRoute->component . (++$this->index), $viewiRoute->url)
-                ->controller(ViewiSlimComponent::class)
-                ->methods([$viewiRoute->method]);
-            $defaults  = ['__viewi_component' => $viewiRoute->component] + ($viewiRoute->defaults ?? []);
-            $route->defaults($defaults);
+
+        /** @var Route $route */
+        foreach ($viewiRoutes as $route) {
+            $this->app->any($route->url, new ViewiSlimComponent($route->component));
         }
     }
 }
@@ -143,75 +188,36 @@ class ViewiSymfonyAdapter extends RouteAdapterBase
 
 namespace App\Adapters;
 
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Fig\Http\Message\StatusCodeInterface;
+use Psr\Http\Message\StreamInterface;
+use Slim\Psr7\Headers;
+use Slim\Psr7\Interfaces\HeadersInterface;
+use Slim\Psr7\Response;
 
-class RawJsonResponse extends JsonResponse
+class RawJsonResponse extends Response
 {
     private $rawData = null;
-    /**
-     * @param mixed $data    The response data
-     * @param int   $status  The response status code
-     * @param array $headers An array of response headers
-     * @param bool  $json    If the data is already a JSON string
-     */
-    public function __construct($data = null, int $status = 200, array $headers = [], bool $json = false)
-    {
-        $this->rawData = $data;
-        parent::__construct($data, $status, $headers, $json);
+
+    public function __construct(
+        int $status = StatusCodeInterface::STATUS_OK,
+        ?HeadersInterface $headers = null,
+        ?StreamInterface $body = null
+    ) {
+        if (!$headers) {
+            $headers = new Headers([], []);
+        }
+        $headers = $headers->addHeader('Content-Type', 'application/json');
+        parent::__construct($status, $headers, $body);
     }
 
     public function setData($data = [])
     {
         $this->rawData = $data;
-        parent::setData($data);
     }
 
     public function getRawData()
     {
         return $this->rawData;
-    }
-}
-```
-
-# Register adapter and routes
-
-`src\Kernel.php`
-
-```php
-<?php
-
-namespace App;
-
-use App\Adapters\ViewiSlimAdapter;
-use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
-use Symfony\Component\HttpKernel\Kernel as BaseKernel;
-use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
-use Viewi\Routing\Route;
-
-class Kernel extends BaseKernel
-{
-    use MicroKernelTrait;
-
-    private ViewiSlimAdapter $viewiAdapter;
-
-    public function boot()
-    {
-        // set up Symfony adapter for Viewi 
-        $this->viewiAdapter = new ViewiSlimAdapter();
-        Route::setAdapter($this->viewiAdapter);
-        include __DIR__ . '/ViewiApp/viewi.php';
-        parent::boot();
-    }
-
-    protected function configureRoutes(RoutingConfigurator $routes): void
-    {
-        $extensions = '{php,yaml}';
-
-        $routes->import('../config/{routes}/' . $this->environment . "/*.$extensions");
-        $routes->import("../config/{routes}/*.$extensions");
-        $routes->import("../config/{routes}.$extensions");
-        // register routes from Viewi
-        $this->viewiAdapter->registerRoutes($routes);
     }
 }
 ```
