@@ -40,7 +40,8 @@ class ViewiSlimAdapter extends RouteAdapterBase
 
         /** @var Route $route */
         foreach ($viewiRoutes as $route) {
-            $this->app->any($route->url, new ViewiSlimComponent($route->component));
+            $method = $route->method;
+            $this->app->$method($route->url, new ViewiSlimComponent($route->component));
         }
     }
 }
