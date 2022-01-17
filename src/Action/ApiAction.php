@@ -7,10 +7,11 @@ use App\Adapters\RawJsonResponse;
 use Components\Models\PostModel;
 use Psr\Http\Message\RequestInterface;
 
-final class ApiAction extends AbstractApiAction
+final class ApiAction
 {
-    public function handle(RequestInterface $request, RawJsonResponse $response): RawJsonResponse
+    public function __invoke(RequestInterface $request, RawJsonResponse $response): RawJsonResponse
     {
+        $response = RawJsonResponse::fromPsrResponse($response);
         $postModel = new PostModel();
         $postModel->Name = 'Symfony ft. Viewi';
         $postModel->Version = 1;

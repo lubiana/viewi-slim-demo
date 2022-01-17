@@ -7,7 +7,7 @@
         "php": ">=7.4",
         "slim/psr7": "^1.5",
         "slim/slim": "4.*",
-        "viewi/viewi": "^0.1.5",
+        "viewi/viewi": "^0.1.5"
     },
     "autoload": {
         "psr-4": {
