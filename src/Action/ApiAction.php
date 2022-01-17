@@ -14,7 +14,7 @@ final class ApiAction
     {
         $response = RawJsonResponse::fromPsrResponse($response);
         $postModel = new PostModel();
-        $postModel->Name = 'Symfony ft. Viewi';
+        $postModel->Name = 'Slim ft. Viewi';
         $postModel->Version = 1;
         return $response->setData($postModel);
     }

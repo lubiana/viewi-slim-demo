@@ -1,6 +1,6 @@
 # Viewi ft. Symfony
 
-## Install Symfony (API)
+## Install Slim and the PSR7 implementation (API)
 
     composer require slim/slim:"4.*"
     composer require slim/psr7
@@ -27,36 +27,21 @@ $app->run();
 
 ## Configure SlimApp `src/SlimViewi.php`
 
-here we define our mocked api controller and register the slim viewi adapter
+Here we register the routes and set our Adapters for die Viewi Application
 
 ```php
 <?php
-use App\Adapters\RawJsonResponse;
+
+use App\Action\ApiAction;
 use App\Adapters\ViewiSlimAdapter;
-use Components\Models\PostModel;
-use Psr\Http\Message\RequestInterface as Request;
-use Psr\Http\Message\ResponseInterface as Response;
 use Slim\App;
 use Slim\Factory\AppFactory;
-use Slim\Psr7\Headers;
 use Viewi\Routing\Route;
 
 return function () : App {
     $app = AppFactory::create();
 
-    $app->get('/api', function (Request $request, Response $response): RawJsonResponse {
-        $body = $response->getBody();
-        $postModel = new PostModel();
-        $postModel->Name = 'Symfony ft. Viewi';
-        $postModel->Version = 1;
-        $headers = new Headers($response->getHeaders());
-        $response = new RawJsonResponse($response->getStatusCode(), $headers, $response->getBody());
-        $response->setData($postModel);
-        $body->write(json_encode($postModel));
-        return $response
-            ->withHeader('Content-Type', 'application/json')
-            ->withBody($body);
-    });
+    $app->get('/api', ApiAction::class);
 
     require __DIR__ . '/../src/ViewiApp/viewi.php';
     $adapter = new ViewiSlimAdapter($app);
@@ -69,7 +54,16 @@ return function () : App {
 
 ## Configure Slim
 
-Create Viewi adapter for Symfony
+Create Viewi adapter for Slim
+
+This Adapter is our Requesthandler for HTTP-Request return a prerendered response from Viewi.
+
+If called our slim application dispatches the request and it params to the Viewi application, captures the html output,
+adds it to the slim PSR-Response-Object and gives it back to the slim framework to be emitted to the browser.
+
+If for any reason the output from viewi is not a string we simply return the given response-object.
+
+Question: what are other possible outputs by Viwie\App->run() that could happen and why?
 
 `src\Adapters\ViewiSlimComponent.php`
 
@@ -81,7 +75,6 @@ namespace App\Adapters;
 use Slim\Psr7\Request;
 use Slim\Psr7\Response;
 use Viewi\App;
-use Viewi\WebComponents\Response as ViewiResponse;
 
 class ViewiSlimComponent
 {
@@ -102,33 +95,26 @@ class ViewiSlimComponent
             return  $response
                 ->withBody($body);
         }
-        if ($vResponse instanceof ViewiResponse) {
-            /** @var ViewiResponse $response */
-            if ($vResponse->Stringify) { // ViewiResponse with the object (should never happen, Symfony handles the API)
-                return new JsonResponse(
-                    $response->Content,
-                    $response->StatusCode,
-                    $response->Headers
-                );
-            }
 
-            return new Response(
-                $response->Content,
-                $response->StatusCode,
-                $response->Headers
-            );
-        }
-        // json (should never happen, Symfony handles the API
-        $body = $response->getBody();
-        $body->write($vResponse);
-        return  $response
-            ->withHeader('Content-Type', 'application/json')
-            ->withBody($body);
+        return $response;
     }
 }
 ```
 
-`src\Adapters\ViewiSymfonyAdapter.php`
+This Adapter Connects Viewi with Slim as well as the other way around.
+
+I am not completely clear on the handle() Method, but to my understanding it gets called, if we have api-calls inside of
+a server side rendered component.
+In this case we create a PSR-Serverrequest and manually dispatch it to slims routehandler. Then we collect the Raw-Data
+from the ResponseObject (if available) and return it to Viewis Component Renderer to be used in prerendering of the
+component with the correct data from the faked request.
+
+The registerRoutes method simply collects the Routes from our Viewi-Application and registers them in slim.
+We collect the Component-Name from the route, pass it to a new ViewiSlimComponent-Object and register that object
+as requesthandler.
+This way we let Viewi render the correct page whenever a http-request happens directly to a Viewi page. 
+
+`src\Adapters\ViewiSlimAdapter.php`
 
 ```php
 <?php
@@ -173,13 +159,20 @@ class ViewiSlimAdapter extends RouteAdapterBase
 
         /** @var Route $route */
         foreach ($viewiRoutes as $route) {
-            $this->app->any($route->url, new ViewiSlimComponent($route->component));
+            $method = $route->method;
+            $this->app->$method($route->url, new ViewiSlimComponent($route->component));
         }
     }
 }
 ```
 
 ### We need an original data without modifications (not encoded to the json)
+
+With this Adapter we extend Slims PSR7 implementation, we need this way to be able to store normal PHP-Objects in the
+Response, so we can read and apply them to our components in server side rendered responses.
+I added a small static factory that we can call in our action handlers to transform a normal Response-Object into our
+RawJsonResponse.
+I also modified the setData() Method to automatically modify the response body whenever we add data to our Object:wq
 
 `src\Adapters\RawJsonResponse.php`
 
@@ -189,6 +182,7 @@ class ViewiSlimAdapter extends RouteAdapterBase
 namespace App\Adapters;
 
 use Fig\Http\Message\StatusCodeInterface;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Slim\Psr7\Headers;
 use Slim\Psr7\Interfaces\HeadersInterface;
@@ -213,11 +207,20 @@ class RawJsonResponse extends Response
     public function setData($data = [])
     {
         $this->rawData = $data;
+        $this->body->write(json_encode($data));
+        return $this;
     }
+
 
     public function getRawData()
     {
         return $this->rawData;
+    }
+
+    public static function fromPsrResponse(ResponseInterface $response) : self
+    {
+        $headers = new Headers($response->getHeaders());
+        return new self($response->getStatusCode(), $headers, $response->getBody());
     }
 }
 ```

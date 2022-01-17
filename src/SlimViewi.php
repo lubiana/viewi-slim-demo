@@ -1,11 +1,7 @@
 <?php
 
 use App\Action\ApiAction;
-use App\Adapters\RawJsonResponse;
 use App\Adapters\ViewiSlimAdapter;
-use Psr\Http\Message\RequestInterface as Request;
-use Psr\Http\Message\ResponseInterface as Response;
-use Psr\Http\Server\RequestHandlerInterface;
 use Slim\App;
 use Slim\Factory\AppFactory;
 use Viewi\Routing\Route;
