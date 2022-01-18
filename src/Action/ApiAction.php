@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Action;
@@ -10,10 +11,11 @@ use Psr\Http\Message\ResponseInterface;
 
 final class ApiAction
 {
-    public function __invoke(RequestInterface $request, ResponseInterface $response): RawJsonResponse
+    public function __invoke(RequestInterface $request, ResponseInterface $response, $args): RawJsonResponse
     {
         $response = RawJsonResponse::fromPsrResponse($response);
         $postModel = new PostModel();
+        $postModel->Id = (int)$args['id'];
         $postModel->Name = 'Slim ft. Viewi';
         $postModel->Version = 1;
         return $response->setData($postModel);
