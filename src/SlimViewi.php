@@ -9,7 +9,7 @@ use Viewi\Routing\Route;
 return function () : App {
     $app = AppFactory::create();
 
-    $app->get('/api', ApiAction::class);
+    $app->get('/api/posts/{id}', ApiAction::class);
 
     require __DIR__ . '/../src/ViewiApp/viewi.php';
     $adapter = new ViewiSlimAdapter($app);

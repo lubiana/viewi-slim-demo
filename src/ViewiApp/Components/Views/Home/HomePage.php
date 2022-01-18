@@ -14,7 +14,7 @@ class HomePage extends BaseComponent
 
     public function __init(HttpClient $http)
     {
-        $http->get('/api')->then(function (PostModel $data) {
+        $http->get('/api/posts/5')->then(function (PostModel $data) {
             $this->post = $data;
         }, function ($error) {
             echo $error;
