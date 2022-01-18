@@ -19,10 +19,7 @@ Remove Viewi related stuff
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-/** @var \Slim\App $app */
-$app = (require __DIR__ . '/../src/SlimViewi.php')();
-
-$app->run();
+(require __DIR__ . '/../src/SlimViewi.php')->run();
 ```
 
 ## Configure SlimApp `src/SlimViewi.php`
@@ -32,24 +29,23 @@ Here we register the routes and set our Adapters for die Viewi Application
 ```php
 <?php
 
+declare(strict_types=1);
+
 use App\Action\ApiAction;
 use App\Adapters\ViewiSlimAdapter;
-use Slim\App;
 use Slim\Factory\AppFactory;
 use Viewi\Routing\Route;
 
-return function () : App {
-    $app = AppFactory::create();
+$app = AppFactory::create();
 
-    $app->get('/api', ApiAction::class);
+$app->get('/api/posts/{id}', ApiAction::class);
 
-    require __DIR__ . '/../src/ViewiApp/viewi.php';
-    $adapter = new ViewiSlimAdapter($app);
-    Route::setAdapter($adapter);
-    $adapter->registerRoutes();
+require __DIR__ . '/../src/ViewiApp/viewi.php';
+$adapter = new ViewiSlimAdapter($app);
+Route::setAdapter($adapter);
+$adapter->registerRoutes();
 
-    return $app;
-};
+return $app;
 ```
 
 ## Configure Slim
@@ -63,32 +59,31 @@ adds it to the slim PSR-Response-Object and gives it back to the slim framework 
 
 If for any reason the output from viewi is not a string we simply return the given response-object.
 
-Question: what are other possible outputs by Viwie\App->run() that could happen and why?
-
 `src\Adapters\ViewiSlimComponent.php`
 
 ```php
 <?php
+
+declare(strict_types=1);
 
 namespace App\Adapters;
 
 use Slim\Psr7\Request;
 use Slim\Psr7\Response;
 use Viewi\App;
+use function is_string;
 
-class ViewiSlimComponent
+final class ViewiSlimComponent
 {
     private string $component;
 
-    public function __construct(string $component) {
+    public function __construct(string $component)
+    {
         $this->component = $component;
     }
-    public function __invoke(Request $request, Response $response): Response
+    public function __invoke(Request $request, Response $response, $args): Response
     {
-        $params = $request->getQueryParams();
-        $params['__viewi_component'] = $this->component;
-
-        $vResponse = App::run($this->component, $params);
+        $vResponse = App::run($this->component, $args);
         if (is_string($vResponse)) { // html
             $body = $response->getBody();
             $body->write($vResponse);
@@ -119,14 +114,16 @@ This way we let Viewi render the correct page whenever a http-request happens di
 ```php
 <?php
 
+declare(strict_types=1);
+
 namespace App\Adapters;
 
 use Slim\App;
 use Slim\Psr7\Factory\ServerRequestFactory;
-use Viewi\Routing\RouteAdapterBase;
 use Viewi\Routing\Route;
+use Viewi\Routing\RouteAdapterBase;
 
-class ViewiSlimAdapter extends RouteAdapterBase
+final class ViewiSlimAdapter extends RouteAdapterBase
 {
     private int $index = 0; // unique names
     private App $app;
@@ -136,7 +133,7 @@ class ViewiSlimAdapter extends RouteAdapterBase
         $this->app = $app;
     }
 
-    public function register($method, $url, $component, $defaults)
+    public function register($method, $url, $component, $defaults): void
     {
         // skip
     }
@@ -146,14 +143,13 @@ class ViewiSlimAdapter extends RouteAdapterBase
         $method = strtoupper($method);
         $request = (new ServerRequestFactory())->createServerRequest($method, $url, $params ?? []);
         $response = $this->app->handle($request);
-        if($response instanceof RawJsonResponse)
-        {
+        if ($response instanceof RawJsonResponse) {
             return $response->getRawData();
         }
         return json_decode($response->getContent());
     }
 
-    public function registerRoutes()
+    public function registerRoutes(): void
     {
         $viewiRoutes = Route::getRoutes();
 
@@ -179,6 +175,8 @@ I also modified the setData() Method to automatically modify the response body w
 ```php
 <?php
 
+declare(strict_types=1);
+
 namespace App\Adapters;
 
 use Fig\Http\Message\StatusCodeInterface;
@@ -188,7 +186,7 @@ use Slim\Psr7\Headers;
 use Slim\Psr7\Interfaces\HeadersInterface;
 use Slim\Psr7\Response;
 
-class RawJsonResponse extends Response
+final class RawJsonResponse extends Response
 {
     private $rawData = null;
 
@@ -217,7 +215,7 @@ class RawJsonResponse extends Response
         return $this->rawData;
     }
 
-    public static function fromPsrResponse(ResponseInterface $response) : self
+    public static function fromPsrResponse(ResponseInterface $response): self
     {
         $headers = new Headers($response->getHeaders());
         return new self($response->getStatusCode(), $headers, $response->getBody());
