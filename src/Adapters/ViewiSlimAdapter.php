@@ -1,13 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Adapters;
 
 use Slim\App;
 use Slim\Psr7\Factory\ServerRequestFactory;
-use Viewi\Routing\RouteAdapterBase;
 use Viewi\Routing\Route;
+use Viewi\Routing\RouteAdapterBase;
 
-class ViewiSlimAdapter extends RouteAdapterBase
+final class ViewiSlimAdapter extends RouteAdapterBase
 {
     private int $index = 0; // unique names
     private App $app;
@@ -17,7 +19,7 @@ class ViewiSlimAdapter extends RouteAdapterBase
         $this->app = $app;
     }
 
-    public function register($method, $url, $component, $defaults)
+    public function register($method, $url, $component, $defaults): void
     {
         // skip
     }
@@ -27,14 +29,13 @@ class ViewiSlimAdapter extends RouteAdapterBase
         $method = strtoupper($method);
         $request = (new ServerRequestFactory())->createServerRequest($method, $url, $params ?? []);
         $response = $this->app->handle($request);
-        if($response instanceof RawJsonResponse)
-        {
+        if ($response instanceof RawJsonResponse) {
             return $response->getRawData();
         }
         return json_decode($response->getContent());
     }
 
-    public function registerRoutes()
+    public function registerRoutes(): void
     {
         $viewiRoutes = Route::getRoutes();
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Action\ApiAction;
 use App\Adapters\ViewiSlimAdapter;
 use Slim\Factory\AppFactory;

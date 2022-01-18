@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Adapters;
 
 use Fig\Http\Message\StatusCodeInterface;
@@ -9,7 +11,7 @@ use Slim\Psr7\Headers;
 use Slim\Psr7\Interfaces\HeadersInterface;
 use Slim\Psr7\Response;
 
-class RawJsonResponse extends Response
+final class RawJsonResponse extends Response
 {
     private $rawData = null;
 
@@ -38,7 +40,7 @@ class RawJsonResponse extends Response
         return $this->rawData;
     }
 
-    public static function fromPsrResponse(ResponseInterface $response) : self
+    public static function fromPsrResponse(ResponseInterface $response): self
     {
         $headers = new Headers($response->getHeaders());
         return new self($response->getStatusCode(), $headers, $response->getBody());

@@ -1,16 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Adapters;
 
 use Slim\Psr7\Request;
 use Slim\Psr7\Response;
 use Viewi\App;
+use function is_string;
 
-class ViewiSlimComponent
+final class ViewiSlimComponent
 {
     private string $component;
 
-    public function __construct(string $component) {
+    public function __construct(string $component)
+    {
         $this->component = $component;
     }
     public function __invoke(Request $request, Response $response, $args): Response
