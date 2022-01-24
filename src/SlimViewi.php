@@ -11,9 +11,8 @@ $app = AppFactory::create();
 
 $app->get('/api/posts/{id}', ApiAction::class);
 
-require __DIR__ . '/../src/ViewiApp/viewi.php';
 $adapter = new ViewiSlimAdapter($app);
 Route::setAdapter($adapter);
-$adapter->registerRoutes();
+require __DIR__ . '/../src/ViewiApp/viewi.php';
 
 return $app;
