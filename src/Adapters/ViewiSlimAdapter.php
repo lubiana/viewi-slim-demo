@@ -11,7 +11,6 @@ use Viewi\Routing\RouteAdapterBase;
 
 final class ViewiSlimAdapter extends RouteAdapterBase
 {
-    private int $index = 0; // unique names
     private App $app;
 
     public function __construct(App $app)
@@ -21,7 +20,7 @@ final class ViewiSlimAdapter extends RouteAdapterBase
 
     public function register($method, $url, $component, $defaults): void
     {
-        // skip
+        $this->app->$method($url, new ViewiSlimComponent($component));
     }
 
     public function handle($method, $url, $params = null)
@@ -33,16 +32,5 @@ final class ViewiSlimAdapter extends RouteAdapterBase
             return $response->getRawData();
         }
         return json_decode($response->getContent());
-    }
-
-    public function registerRoutes(): void
-    {
-        $viewiRoutes = Route::getRoutes();
-
-        /** @var Route $route */
-        foreach ($viewiRoutes as $route) {
-            $method = $route->method;
-            $this->app->$method($route->url, new ViewiSlimComponent($route->component));
-        }
     }
 }
