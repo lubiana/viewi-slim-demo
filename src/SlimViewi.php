@@ -3,11 +3,14 @@
 declare(strict_types=1);
 
 use App\Action\ApiAction;
+use App\Adapters\RawJsonResponseFactory;
 use App\Adapters\ViewiSlimAdapter;
 use Slim\Factory\AppFactory;
 use Viewi\Routing\Route;
 
-$app = AppFactory::create();
+$app = AppFactory::create(
+    new RawJsonResponseFactory()
+);
 
 $app->get('/api/posts/{id}', ApiAction::class);
 

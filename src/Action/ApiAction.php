@@ -7,17 +7,17 @@ namespace App\Action;
 use App\Adapters\RawJsonResponse;
 use Components\Models\PostModel;
 use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
 
 final class ApiAction
 {
-    public function __invoke(RequestInterface $request, ResponseInterface $response, $args): RawJsonResponse
+    public function __invoke(RequestInterface $request, RawJsonResponse $response, $args): RawJsonResponse
     {
-        $response = RawJsonResponse::fromPsrResponse($response);
         $postModel = new PostModel();
         $postModel->Id = (int)$args['id'];
         $postModel->Name = 'Slim ft. Viewi';
         $postModel->Version = 1;
-        return $response->setData($postModel);
+        return $response
+            ->setData($postModel)
+            ->withJsonHeader();
     }
 }
